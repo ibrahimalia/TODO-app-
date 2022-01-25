@@ -1,0 +1,164 @@
+<link href="https://unpkg.com/todomvc-app-css@2.1.0/index.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+
+<div id="test">
+<section class="todoapp">
+  <header class="header">
+    <h1>todos</h1>
+    <input class="new-todo"
+      autocomplete="true"
+      placeholder="What needs to be done?" v-model="newValue" v-on:keyup.enter="addTodo()">
+  </header>
+  <section class="main" >
+    <input class="toggle-all" id="toggle-all" type="checkbox" v-model="allDone">
+    <label for="toggle-all">Mark all as complete</label>
+    
+    <ul class="todo-list">
+      <li class="todo" v-for="(todo) in filterSonar" v-bind:class="{completed:todo.completed,editing:todo == editingTodo}">
+        <div class="view">
+          <input class="toggle" type="checkbox" v-model="todo.completed"> 
+          <label v-on:dblclick="checkEditingTodo(todo)">{{todo.title}}</label>
+          <button class="destroy" v-on:click="deleteTodo(todo)"></button>
+        </div>
+        <input class="edit" type="text" v-model="todo.title" 
+        v-on:keyup.esc="cancelUpdate()"
+        v-on:keyup.enter="updateTodo()">
+      </li>
+    </ul>
+  </section>
+  <footer class="footer">
+    <span class="todo-count">
+      <strong>{{numbercompletedTask}}</strong> {{textItem}}
+    </span>
+    <ul class="filters">
+      <li><a href="#" v-on:click.prevent="visibility='all'" :class="{selected:visibility=='all'}">All</a></li>
+      <li><a href="#" v-on:click.prevent="visibility='active'" :class="{selected:visibility=='active'}">Active</a></li>
+      <li><a href="#" v-on:click.prevent="visibility='complete'" :class="{selected:visibility=='complete'}">Completed</a></li>
+    </ul>
+    <button class="clear-completed" v-on:click="clearCompleted()" >
+      Clear completed
+    </button>
+  </footer>
+</section>
+<footer class="info">
+  <p>Double-click to edit a todo</p>
+</footer>
+</div>
+<script>
+
+  let filters={
+    all: function(todos){
+      return todos;
+    },
+    active:function(todos){
+      return todos.filter(function(todo){
+        return todo.completed == false ;
+      })  
+    },
+    complete:function(todos){
+      return todos.filter(function(todo){
+        return todo.completed == true ;
+      })
+    }
+
+  };
+  let dataStorage={
+    fetch:function(todos) {
+      let data= JSON.parse(localStorage.getItem("todo") || '[]');
+       return data;
+    
+    },
+    save:function(todos){
+      localStorage.setItem("todo",JSON.stringify(todos));
+    }
+  }
+	new Vue({
+		el:"#test",
+		data:{
+      textItem:"",
+      visibility:"all",
+      todos:dataStorage.fetch(),
+      newValue:null,
+      editingTodo:null,
+      oldTitle:null,
+     
+		},
+		methods: {
+			deleteTodo:function(todo){
+        this.todos.splice(this.todos.indexOf(todo), 1);
+      },
+      addTodo:function(){
+        if (this.newValue==null) {
+          return;
+        }
+        this.todos.push({
+          title:this.newValue,
+          completed:false
+        });
+        this.newValue=null;
+      },
+      clearCompleted:function(){
+        this.todos=filters.active(this.todos);
+      },
+      convertCompleteTasksTOAvtive:function(){
+        this.todos.forEach(function(element){
+          if(element.completed){
+          element.completed=false;
+          }
+        })
+      },
+      checkEditingTodo:function(todo){
+        this.oldTitle=todo.title;
+        this.editingTodo=todo;
+      },
+      updateTodo:function(){
+        if (this.editingTodo.title == "") {
+          this.deleteTodo(this.editingTodo);
+        }
+          this.editingTodo=null;
+      },
+      cancelUpdate: function() {
+        this.editingTodo.title = this.oldTitle;    
+        this.editingTodo=null;
+
+      }
+			
+		},
+		computed:{
+      filterSonar:function(){
+        return filters[this.visibility](this.todos);
+      },
+      numbercompletedTask:function(){
+        let count =filters.complete(this.todos).length;
+        if (count == 1) {
+          this.textItem="item left";
+          return count;
+        } else {
+          this.textItem="items left";
+          return count;
+        }
+      },
+      allDone:{
+        get: function() {
+          return filters.active(this.todos).length == 0;
+        },
+        set: function(value){
+          this.todos.forEach(function(element){
+            element.completed=value;
+          });
+        }
+      },
+      
+      
+           
+		},
+		watch:{
+      todos:{
+        handler: function(todos){
+        dataStorage.save(todos);
+      },
+      deep:true
+		}
+  }
+	})
+</script>
